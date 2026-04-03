@@ -1,67 +1,78 @@
-let data = {
+let data = JSON.parse(localStorage.getItem("rc_data")) || {
   coches: [],
   clientes: [],
+  ventas: [],
+  retiros: [],
+  depositos: [],
   historial: [],
-  caja: 0,
-  abierta: false
+  caja: { abierta:false, inicial:0 }
 };
 
+// FIX DATOS VIEJOS
+if(!data.depositos) data.depositos = [];
+if(!data.clientes) data.clientes = [];
+
+let cocheSel = null;
+
 // CREAR COCHES
-data.coches = [
-  "Drift 1","Drift 2",
-  ...Array.from({length:10},(_,i)=>"Futbol "+(i+1)),
-  ...Array.from({length:6},(_,i)=>"Robot "+(i+1)),
-  ...Array.from({length:10},(_,i)=>"Peleador "+(i+1))
-].map(n=>({
-  nombre:n,
-  tiempo:0,
-  estado:"libre",
-  cliente:""
-}));
-
-// VISTAS
-function vista(v){
-  document.querySelectorAll("#inicio,#clientes,#historial")
-    .forEach(e=>e.classList.remove("show"));
-
-  const el = document.getElementById(v);
-  if(el) el.classList.add("show");
-
-  if(v==="clientes") verClientes();
-  if(v==="historial") verHistorial();
+if(data.coches.length===0){
+  data.coches = [
+    "Drift 1","Drift 2",
+    ...Array.from({length:10},(_,i)=>"Futbol "+(i+1)),
+    ...Array.from({length:6},(_,i)=>"Robot "+(i+1)),
+    ...Array.from({length:10},(_,i)=>"Luchador "+(i+1))
+  ].map(n=>({
+    nombre:n,
+    estado:"libre",
+    tiempo:0,
+    tiempoInicial:0,
+    cliente:""
+  }));
 }
 
-// 🔥 FORZAR GLOBAL (ARREGLA TU ERROR)
-window.vista = vista;
+function guardar(){
+  localStorage.setItem("rc_data", JSON.stringify(data));
+}
+
+// CAMBIAR VISTA
+function cambiarVista(v){
+  document.querySelectorAll(".vista").forEach(el=>{
+    el.classList.remove("activo");
+  });
+
+  const actual = document.getElementById(v);
+  if(actual) actual.classList.add("activo");
+
+  if(v==="clientes") renderClientes();
+  if(v==="historial") renderHistorial();
+}
 
 // RENDER
 function render(){
-  const cont=document.getElementById("coches");
-  if(!cont) return;
-
+  const cont = document.getElementById("coches");
   cont.innerHTML="";
 
-  const tipos = ["Drift","Futbol","Robot","Peleador"];
+  const tipos = ["Drift","Futbol","Robot","Luchador"];
 
   tipos.forEach(tipo=>{
-    const seccion=document.createElement("div");
+    const seccion = document.createElement("div");
+    seccion.className="seccion";
 
-    const titulo=document.createElement("h2");
-    titulo.innerText=tipo;
-    seccion.appendChild(titulo);
+    const titulo = document.createElement("h2");
+    titulo.innerText = tipo;
 
-    const grid=document.createElement("div");
+    const grid = document.createElement("div");
     grid.className="grid";
 
     data.coches
       .filter(c=>c.nombre.toLowerCase().includes(tipo.toLowerCase()))
-      .forEach(c=>{
+      .forEach((c)=>{
         const i = data.coches.findIndex(x=>x.nombre===c.nombre);
 
         let clase="libre";
         if(c.estado==="uso" && c.tiempo>5) clase="activo";
-        else if(c.estado==="uso" && c.tiempo>0 && c.tiempo<=5) clase="poco";
-        else if(c.estado==="uso" && c.tiempo===0) clase="terminado";
+        if(c.tiempo<=5 && c.tiempo>0) clase="poco";
+        if(c.tiempo<=0 && c.estado==="uso") clase="terminado";
 
         const div=document.createElement("div");
         div.className="coche "+clase;
@@ -72,44 +83,60 @@ function render(){
           ${c.tiempo>0 ? c.tiempo+" min":""}<br>
           ${
             c.estado==="uso"
-            ? `<button onclick="terminar(${i})">✔</button>`
-            : `<button onclick="iniciar(${i})">▶</button>`
+            ? `<button onclick="terminar(${i})">✔</button>
+               <button onclick="cancelar(${i})">✖</button>`
+            : `<button onclick="abrirModal(${i})">▶</button>`
           }
         `;
 
         grid.appendChild(div);
       });
 
+    seccion.appendChild(titulo);
     seccion.appendChild(grid);
     cont.appendChild(seccion);
   });
 
-  document.getElementById("dinero").innerText="$"+data.caja;
+  actualizarDinero();
 }
 
-// INICIAR
-function iniciar(i){
-  if(!data.abierta){
+// MODAL
+function abrirModal(i){
+  if(!data.caja.abierta){
     alert("Abre caja primero");
     return;
   }
 
-  const nombre=prompt("Nombre");
-  const tiempo=Number(prompt("Minutos"));
+  cocheSel=i;
+  document.getElementById("modal").classList.remove("oculto");
+}
+
+function cerrarModal(){
+  document.getElementById("modal").classList.add("oculto");
+}
+
+// INICIAR
+function confirmarInicio(){
+  const nombre=document.getElementById("nombre").value;
+  const tiempo=Number(document.getElementById("tiempo").value);
 
   if(!nombre || !tiempo) return;
 
-  const c=data.coches[i];
+  const c=data.coches[cocheSel];
   c.estado="uso";
   c.cliente=nombre;
   c.tiempo=tiempo;
+  c.tiempoInicial=tiempo;
 
   data.clientes.push({
     nombre,
     coche:c.nombre,
+    tiempo,
     hora:new Date().toLocaleTimeString()
   });
 
+  cerrarModal();
+  guardar();
   render();
 }
 
@@ -117,28 +144,60 @@ function iniciar(i){
 function terminar(i){
   const c=data.coches[i];
 
-  data.caja += Math.ceil(c.tiempo/15)*50;
+  data.ventas.push({
+    cliente:c.cliente,
+    total: Math.ceil(c.tiempoInicial/15)*50
+  });
 
   c.estado="libre";
   c.tiempo=0;
   c.cliente="";
 
+  guardar();
+  render();
+}
+
+// CANCELAR
+function cancelar(i){
+  const c=data.coches[i];
+  c.estado="libre";
+  c.tiempo=0;
+  c.cliente="";
+  guardar();
   render();
 }
 
 // TIMER
 setInterval(()=>{
   data.coches.forEach(c=>{
-    if(c.estado==="uso" && c.tiempo>0){
+    if(c.estado==="uso"){
       c.tiempo--;
+      if(c.tiempo<0) c.tiempo=0;
     }
   });
+  guardar();
   render();
 },60000);
 
+// DINERO
+function totalVentas(){
+  return data.ventas.reduce((a,v)=>a+v.total,0);
+}
+function totalRetiros(){
+  return data.retiros.reduce((a,r)=>a+r.monto,0);
+}
+function totalDepositos(){
+  return data.depositos.reduce((a,d)=>a+d.monto,0);
+}
+
+function actualizarDinero(){
+  document.getElementById("dinero").innerText =
+    "💰 $" + (data.caja.inicial + totalVentas() + totalDepositos() - totalRetiros());
+}
+
 // CAJA
 function abrirCaja(){
-  if(data.abierta){
+  if(data.caja.abierta){
     alert("Ya abierta");
     return;
   }
@@ -146,49 +205,57 @@ function abrirCaja(){
   const monto=Number(prompt("Monto inicial"));
   if(!monto) return;
 
-  data.caja=monto;
-  data.abierta=true;
+  data.caja={abierta:true,inicial:monto};
+  guardar();
   render();
 }
 
 function cerrarCaja(){
-  if(!data.abierta) return;
-  if(!confirm("Cerrar caja?")) return;
+  if(!data.caja.abierta) return;
+  if(!confirm("¿Cerrar caja?")) return;
+
+  const ventas = totalVentas();
+  const retiros = totalRetiros();
+  const depositos = totalDepositos();
+  const final = data.caja.inicial + ventas + depositos - retiros;
 
   data.historial.push({
     fecha:new Date().toLocaleDateString(),
     hora:new Date().toLocaleTimeString(),
-    total:data.caja,
-    clientes:[...data.clientes]
+    inicial:data.caja.inicial,
+    ventas,
+    retiros,
+    depositos,
+    final,
+    clientes: Array.isArray(data.clientes) ? [...data.clientes] : []
   });
 
-  data.caja=0;
-  data.abierta=false;
+  data.ventas=[];
+  data.retiros=[];
+  data.depositos=[];
   data.clientes=[];
+  data.caja={abierta:false,inicial:0};
 
+  guardar();
   render();
-  verHistorial();
+  renderHistorial();
 }
 
 // CLIENTES
-function verClientes(){
+function renderClientes(){
   const cont=document.getElementById("listaClientes");
-  if(!cont) return;
-
   cont.innerHTML="";
 
   data.clientes.forEach(c=>{
     const div=document.createElement("div");
-    div.innerText=`${c.nombre} | ${c.coche} | ${c.hora}`;
+    div.innerText=`${c.nombre} | ${c.coche} | ${c.tiempo}min | ${c.hora}`;
     cont.appendChild(div);
   });
 }
 
 // HISTORIAL
-function verHistorial(){
+function renderHistorial(){
   const cont=document.getElementById("listaHistorial");
-  if(!cont) return;
-
   cont.innerHTML="";
 
   data.historial.forEach(d=>{
@@ -196,17 +263,50 @@ function verHistorial(){
     div.className="card";
 
     div.innerHTML=`
-      📅 ${d.fecha} ${d.hora}<br>
-      💰 Total: $${d.total}<br>
-      👥 Clientes: ${d.clientes.length}
+      📅 ${d.fecha} - ${d.hora}<br>
+      💰 Inicial: $${d.inicial}<br>
+      🟢 Ventas: $${d.ventas}<br>
+      🔵 Depósitos: $${d.depositos || 0}<br>
+      🔴 Retiros: $${d.retiros}<br>
+      🟡 Final: $${d.final}<br>
+      👥 Clientes: ${(d.clientes || []).length}
     `;
 
     cont.appendChild(div);
   });
 }
 
-// INIT
-window.onload=()=>{
-  vista("inicio");
+// RETIRO
+function hacerRetiro(){
+  if(!data.caja.abierta){
+    alert("Abre caja primero");
+    return;
+  }
+
+  const monto=Number(prompt("Monto"));
+  if(!monto) return;
+
+  data.retiros.push({monto});
+  guardar();
   render();
-};
+}
+
+// DEPÓSITO
+function hacerDeposito(){
+  if(!data.caja.abierta){
+    alert("Abre caja primero");
+    return;
+  }
+
+  const monto = Number(prompt("Monto a depositar"));
+  if(!monto) return;
+
+  const motivo = prompt("Motivo del depósito") || "Sin motivo";
+
+  data.depositos.push({monto, motivo});
+  guardar();
+  render();
+}
+
+// INIT
+window.onload = render;
