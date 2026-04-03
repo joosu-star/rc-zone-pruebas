@@ -31,6 +31,9 @@ function vista(v){
   if(v==="historial") verHistorial();
 }
 
+// 🔥 FORZAR GLOBAL (ARREGLA TU ERROR)
+window.vista = vista;
+
 // RENDER
 function render(){
   const cont=document.getElementById("coches");
