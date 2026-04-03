@@ -1,0 +1,53 @@
+body{
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+
+button{
+  margin:5px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#1e293b;
+  color:white;
+  cursor:pointer;
+}
+
+#inicio,#clientes,#historial{
+  display:none;
+}
+
+.show{
+  display:block;
+}
+
+#coches{
+  padding:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:10px;
+}
+
+/* coches */
+.coche{
+  padding:10px;
+  border-radius:10px;
+}
+
+.libre{background:gray;}
+.activo{background:green;}
+.poco{background:orange;color:black;}
+.terminado{background:red;}
+
+.card{
+  background:#222;
+  margin:10px;
+  padding:10px;
+  border-radius:10px;
+  text-align:left;
+}
