@@ -355,11 +355,4 @@ window.cerrarCaja = cerrarCaja;
 window.hacerRetiro = hacerRetiro;
 window.hacerDeposito = hacerDeposito;
 
-function borrarHistorial(){
-  if(!confirm("¿Seguro que quieres borrar TODO el historial?")) return;
 
-  data.historial = [];
-  guardar();
-  renderHistorial();
-}
-window.borrarHistorial = borrarHistorial;
