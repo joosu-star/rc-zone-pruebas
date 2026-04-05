@@ -169,8 +169,8 @@ function terminar(i){
 
   let precio = 50;
 
-  // 🤖 Si es robot cuesta 40
-  if(c.nombre.toLowerCase().includes("robot")){
+  // 🥊 Si es luchador cuesta 40
+  if(c.nombre.toLowerCase().includes("luchador")){
     precio = 40;
   }
 
