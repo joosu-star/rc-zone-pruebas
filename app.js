@@ -163,18 +163,25 @@ function confirmarInicio(){
   render();
 }
 
-// ✔ TERMINAR
+// ✔ TERMINAR (🔥 MODIFICADO)
 function terminar(i){
-  const c=data.coches[i];
+  const c = data.coches[i];
+
+  let precio = 50;
+
+  // 🤖 Si es robot cuesta 40
+  if(c.nombre.toLowerCase().includes("robot")){
+    precio = 40;
+  }
 
   data.ventas.push({
-    cliente:c.cliente,
-    total: Math.ceil(c.tiempoInicial/15)*50
+    cliente: c.cliente,
+    total: Math.ceil(c.tiempoInicial / 15) * precio
   });
 
-  c.estado="libre";
-  c.tiempo=0;
-  c.cliente="";
+  c.estado = "libre";
+  c.tiempo = 0;
+  c.cliente = "";
 
   guardar();
   render();
@@ -343,7 +350,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   render();
 });
 
-// 🔥 GLOBAL (SOLUCIONA ERRORES EN GITHUB)
+// 🔥 GLOBAL
 window.cambiarVista = cambiarVista;
 window.abrirModal = abrirModal;
 window.cerrarModal = cerrarModal;
@@ -354,5 +361,3 @@ window.abrirCaja = abrirCaja;
 window.cerrarCaja = cerrarCaja;
 window.hacerRetiro = hacerRetiro;
 window.hacerDeposito = hacerDeposito;
-
-
